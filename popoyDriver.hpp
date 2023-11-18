@@ -50,3 +50,25 @@ bool PulseClock::getState() {
 
   return this->state;
 }
+
+
+class Button {
+  public:
+    bool getState();
+    Button(uint8_t);
+  private:
+    uint8_t buttonPin;
+};
+Button::Button(uint8_t pinNumber) {
+  this->buttonPin = pinNumber;
+  pinMode(this->buttonPin, INPUT_PULLUP);
+}
+
+bool Button::getState() {
+  if (!digitalRead(buttonPin)){
+    return true;
+    delay(1000);
+  } else {
+    return false;
+  }
+}

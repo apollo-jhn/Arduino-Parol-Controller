@@ -1,8 +1,10 @@
+#include <stdint.h>
 #include "Arduino.h"
 
 class PulseClock {
   public:
-    PulseClock(unsigned long, bool);
+    PulseClock(bool);
+    void setInterval(uint16_t);
     bool getState();
   private:
     unsigned long interval;
@@ -12,16 +14,23 @@ class PulseClock {
     bool state;
 };
 
-PulseClock::PulseClock(unsigned long timeInterval, bool nanosecondMode = false) {
-  this->interval = timeInterval; // Get the time interval
+void PulseClock::setInterval(uint16_t timeInterval) {
+  this->interval = timeInterval;
+}
+
+PulseClock::PulseClock(bool nanosecondMode = false) {
   this->nsMode = nanosecondMode;
 
   // Set the default value
+  this->interval = 0;
   this->currentTime = 0;
   this->previousTime = 0;
 }
 
 bool PulseClock::getState() {
+  // If interval is not set it will return default false
+  if(this->interval == 0){return false;}
+
   // Get the current time
   if(!this->nsMode){
     this->currentTime = millis();

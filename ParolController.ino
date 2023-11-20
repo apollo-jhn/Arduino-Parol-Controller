@@ -2,6 +2,7 @@
 
 const uint8_t starsLEDS[] = {3, 4 , 5, 6, 7};
 const uint8_t ringLEDS[] = {2};
+Button nextButton(8, 1000);
 
 ParolController pc(starsLEDS, 5, ringLEDS, 1);
 
@@ -11,26 +12,18 @@ void setup() {
   pc.init();
 }
 
-uint16_t peak = 0;
 uint16_t reading = 0;
-PulseClock regulator;
 
 void loop() {
-  // Regulate
-  regulator.setInterval(1000);
+  nextButton.update();
 
-  if (regulator.getState() && peak != 0) {
-    peak--;
+  if(nextButton.getState()){
+    pc.changePattern();
   }
 
   reading = analogRead(A0);
-  pc.changeInterval(reading - 100);
-  if(peak < reading){
-    peak = reading;
-  }
+  pc.changeInterval((reading - 100 < 1) ? 1 : reading - 100);
 
-
-  Serial.println(String(reading) + " " + String(peak));
   pc.play();
 }
 

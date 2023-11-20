@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 #include "Arduino.h"
 #include <stdint.h>
 #ifndef PAROL_CONTROLLER_HPP
@@ -20,6 +21,8 @@ class ParolController {
     bool alternate;
     void channelWrite(uint8_t, bool); // Function to set channel either HIGH or LOW with trigger if audio is enabled
     void patternManager(uint8_t);
+
+    bool p_bouncing_toggle;
 
     // Pattern START
     void p_static_all();
@@ -50,14 +53,15 @@ class ParolController {
 };
 
 void ParolController::changePattern(){
-  if (this->currentPattern > MAX_PATTERN) {
+  if (this->currentPattern >= MAX_PATTERN) {
     this->currentPattern = -1;
+  } else {
+    this->currentPattern++;
   }
-  this->currentPattern++;
 }
 
 void ParolController::play() {
-  this->patternManager(3);
+  this->patternManager(this->currentPattern);
 
   // Set the time interval
   this->timer.setInterval((this->interval != 0) ? this->interval : 1);
@@ -88,35 +92,38 @@ void ParolController::patternManager(uint8_t  patternN = -1) {
       this->p_static_all_off();
       break;
   }
-};
+}
 
 // PATTERN START
 void ParolController::p_bouncing() {
-  if (this->indexCounterStars < -1) {
-    this->alternate = true;
-  } else if (this->indexCounterStars == this->stars_n) {
-    this->alternate = false;
-  }
+  if (this->timer.getState()) {
+    if (!this->p_bouncing_toggle) {
+        if (this->indexCounterStars == this->stars_n - 1) {
+          this->p_bouncing_toggle = true;
+        } else {
+          this->indexCounterStars++;
+        }
+      } else if (this->p_bouncing_toggle) {
+        if (this->indexCounterStars == 0) {
+          this->p_bouncing_toggle = false;
+        } else {
+          this->indexCounterStars--;
+        }
+      }
 
-  if(this->timer.getState()){
-    // Decending Stars
-    this->p_static_stars_off();
-    this->channelWrite(this->stars[this->indexCounterStars], HIGH);
-    if (this->alternate) {
-      this->indexCounterStars++;
-    } else {
-      this->indexCounterStars--;
-    }
+      // Process Channel
+      this->p_static_stars_off();
+      this->channelWrite(this->stars[this->indexCounterStars], HIGH);
 
+      // For Ring
+      if (this->alternate) {
+        this->p_static_ring();
 
-    // For Ring
-    if (this->alternate) {
-      this->p_static_ring();
-    } else {
-      this->p_static_ring_off();
-    }
+      } else {
+        this->p_static_ring_off();
+      }
 
-    this->alternate = !this->alternate;
+      this->alternate = !this->alternate;
   }
 }
 void ParolController::p_descending() {
@@ -233,11 +240,13 @@ void ParolController::init() {
     delay(500);
   }
 
+  // Setting up default values
   this->alternate = false;
   this->indexCounterStars = 0;
   this->indexCounterRing = 0;
   this->interval = 1000/10;
   this->currentPattern = -1;
+  this->p_bouncing_toggle = false;
 
   // Reset all output to zero
   if (this->beep != -1){ noTone(this->beep); }

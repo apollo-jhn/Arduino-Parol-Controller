@@ -54,21 +54,47 @@ bool PulseClock::getState() {
 
 class Button {
   public:
+    Button(uint8_t, unsigned long);
     bool getState();
-    Button(uint8_t);
+    void update();
   private:
-    uint8_t buttonPin;
+    unsigned long  currentTime;
+    unsigned long  previousTime;
+    unsigned long debounceTime;
+    uint8_t pinNumber;
+    bool state;
+    bool lastState;
 };
-Button::Button(uint8_t pinNumber) {
-  this->buttonPin = pinNumber;
-  pinMode(this->buttonPin, INPUT_PULLUP);
-}
 
 bool Button::getState() {
-  if (!digitalRead(buttonPin)){
-    return true;
-    delay(1000);
+  if(!this->lastState) {
+    this->state = !digitalRead(this->pinNumber);
   } else {
-    return false;
+    this->state = false;
   }
+
+  if(this->state){
+    this->lastState = this->state;
+  }
+
+  return state;
+}
+
+void Button::update(){
+  if(this->currentTime - this->previousTime >= this->debounceTime){
+    this->lastState = false;
+    this->previousTime = this->currentTime;
+  } else if(this->currentTime < this->previousTime) {
+    this->previousTime = 0; // Reset for synchronization
+  } else {
+    this->currentTime = millis();
+  }
+}
+
+Button::Button(uint8_t buttonPin, unsigned long debounceInMs = 50) {
+  this->state = false;
+  this->lastState = false;
+  this->pinNumber = buttonPin;
+  this->debounceTime = debounceInMs;
+  pinMode(this->pinNumber, INPUT_PULLUP);
 }
